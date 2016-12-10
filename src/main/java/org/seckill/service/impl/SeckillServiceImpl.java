@@ -44,24 +44,19 @@ public class SeckillServiceImpl implements SeckillService {
 	}
 
 	public Seckill getById(long seckillId) {
-		return seckillDao.queryById(seckillId);
+		Seckill seckill = redisDao.getSeckill(seckillId);
+		if (seckill == null) {
+			seckill = seckillDao.queryById(seckillId);
+			if (seckill != null) {
+				redisDao.putSeckill(seckill);
+			}
+		}
+		return seckill;
 	}
 
 	public Exposer exportSeckillUrl(long seckillId) {
 		// 优化点：缓存优化
-
-		// 1.访问redis
-		Seckill seckill = redisDao.getSeckill(seckillId);
-		if (seckill == null) {
-			// 2.缓存没有，访问数据库
-			seckill = seckillDao.queryById(seckillId);
-			if (seckill == null) {
-				return new Exposer(false, seckillId);
-			} else {
-				// 3.放入redis
-				redisDao.putSeckill(seckill);
-			}
-		}
+		Seckill seckill = getById(seckillId);
 		Date startTime = seckill.getStartTime();
 		Date endTime = seckill.getEndTime();
 		Date nowTime = new Date();
